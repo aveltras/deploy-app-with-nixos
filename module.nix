@@ -36,6 +36,8 @@ in {
   
   config = mkIf cfg.enable {
 
+    networking.firewall.allowedTCPPorts = [ cfg.port ];
+    
     users.users.${cfg.user} = {
       name = cfg.user;
       description = "My app service user";
