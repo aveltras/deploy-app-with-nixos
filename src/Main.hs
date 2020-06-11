@@ -1,7 +1,8 @@
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes       #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE QuasiQuotes         #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 module Main where
 
@@ -9,6 +10,7 @@ import qualified Data.ByteString          as B
 import qualified Data.ByteString.Char8    as C8
 import qualified Data.ByteString.Lazy     as BL
 import           Data.Either              (fromRight)
+import           Data.Maybe               (fromMaybe)
 import qualified Database.Redis           as Redis
 import           GHC.Int
 import qualified Hasql.Connection         as Hasql
@@ -23,11 +25,14 @@ import           System.Environment       (getEnv)
 main :: IO ()
 main = do
 
-  port <- read <$> getEnv "APP_PORT"
+  port :: Int <- read <$> getEnv "APP_PORT"
   dbConnStr <- getEnv "DATABASE_URL"
 
+  -- let dbConnStr = "postgres:///myapp?user=myapp"
+  -- let dbConnStr = "postgres://myappuser@localhost:5432/myapp?sslmode=disable"
+
   redisConn <- Redis.checkedConnect Redis.defaultConnectInfo
-  sqlConn <- fromRight (error "could not connect sql database") <$> Hasql.acquire (C8.pack dbConnStr)
+  sqlConn <- either (error . C8.unpack . fromMaybe "db connection error") id <$> Hasql.acquire (C8.pack dbConnStr)
 
   run port $ app $ server sqlConn redisConn
 
@@ -47,7 +52,7 @@ server sqlConn redisConn = \case
 getSqlValue :: Hasql.Connection -> IO Int32
 getSqlValue sqlConn = do
 
-  maybeInt <- fmap (fromRight (error "sql error")) $ flip Hasql.run sqlConn $
+  maybeInt <- fmap (either (error . show) id) $ flip Hasql.run sqlConn $
     Hasql.statement () [maybeStatement|
       SELECT intval :: int4
       FROM value

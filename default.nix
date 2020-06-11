@@ -24,6 +24,14 @@ let
   
 in {
   inherit pkgs;
+
+  server = pkgs.haskellPackages.server;
+
+  migrations = pkgs.runCommand "mkMigrations" {} ''
+    mkdir $out
+    cp -r ${./db/migrations}/*.sql $out 
+  '';
+
   shell = compilerSet.shellFor {
     packages = p: [p.server];
     buildInputs = with pkgs; [
