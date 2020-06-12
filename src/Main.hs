@@ -28,9 +28,6 @@ main = do
   port :: Int <- read <$> getEnv "APP_PORT"
   dbConnStr <- getEnv "DATABASE_URL"
 
-  -- let dbConnStr = "postgres:///myapp?user=myapp"
-  -- let dbConnStr = "postgres://myappuser@localhost:5432/myapp?sslmode=disable"
-
   redisConn <- Redis.checkedConnect Redis.defaultConnectInfo
   sqlConn <- either (error . C8.unpack . fromMaybe "db connection error") id <$> Hasql.acquire (C8.pack dbConnStr)
 
